@@ -283,9 +283,6 @@ jobs:
           export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
           which pahole
           pahole --version
-          cd ${{ env.WORK_DIR }}/out/common_sapphire/common
-          ls -la vmlinux* 2>/dev/null || echo "vmlinux not found yet"
-          cd ${{ env.WORK_DIR }}
           LTO=thin BUILD_CONFIG=${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64 \
           build/build.sh -j$(nproc --all)
 

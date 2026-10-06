@@ -262,15 +262,10 @@ jobs:
 
           echo "🎉 ReSukiSU installed and SUSFS for GKI android13-5.15 fully integrated!"
 
-      - name: "📦 Install build dependencies"
+       - name: "📦 Install build dependencies"
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y libssl-dev cmake libelf-dev
-          git clone --depth=1 --branch v1.25 https://github.com/acmel/dwarves.git /tmp/dwarves
-          cd /tmp/dwarves
-          mkdir build && cd build
-          cmake -D__LIB=lib -DBUILD_SHARED_LIBS=OFF ..
-          sudo make install
+          sudo apt-get install -y libssl-dev pahole
           pahole --version
 
       - name: "🔨 Build kernel"

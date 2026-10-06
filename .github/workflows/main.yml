@@ -66,7 +66,7 @@ jobs:
         uses: pierotofy/set-swap-space@master
         with:
             swap-size-gb: 15
-            
+
       - name: 📐 Tune Swap
         run: |
             echo "vm.swappiness=80" | sudo tee -a /etc/sysctl.conf
@@ -83,19 +83,19 @@ jobs:
         run: |
          repo init -u https://android.googlesource.com/kernel/manifest -b common-android13-5.15-lts --depth=1
          repo sync --optimized-fetch --prune --no-clone-bundle --no-tags -j$(nproc --all)
-    
+
          rm -rf .repo
          rm -rf common
 
          # Clean up old Clang versions
          rm -rf prebuilts/clang/host/linux-x86/clang-3289846
          rm -rf prebuilts/clang/host/linux-x86/clang-stable
-         
+
          sed -i \
           -e 's/^BRANCH=.*/BRANCH=android13-5.15/' \
           -e 's/^CLANG_VERSION=.*/CLANG_VERSION=r450784e/' \
          ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.constants
-    
+
          sed -i '/^DEFCONFIG=gki_defconfig/d' ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki
          sed -i '$a\DEFCONFIG=${{ env.DEFCONFIG_NAME }}' ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki
          sed -i '/^POST_DEFCONFIG_CMDS="check_defconfig"/d' ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki
@@ -116,12 +116,12 @@ jobs:
         run: |
           # Define the config file path
           CONFIG_FILE="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
-          
+
           # Set localversion
           if [ -n "${{ github.event.inputs.localVersion }}" ]; then
             echo "CONFIG_LOCALVERSION=\"${{ github.event.inputs.localVersion }}\"" >> "$CONFIG_FILE"
           fi
-          
+
           CONFIG_FILE="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           cat >> "$CONFIG_FILE" << 'EOF'
           CONFIG_KALLSYMS=y
@@ -140,9 +140,9 @@ jobs:
 
           echo "📦 Installing KSU..."
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s main
-          
+
           echo "✔ KSU installed successfully"
-          
+
           # Clone SUSFS4KSU for kernel patches only (not KSU integration)
           echo "📦 Cloning SUSFS4KSU for kernel patches..."
           git clone --depth=1 https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android13-5.15
@@ -164,9 +164,9 @@ jobs:
             echo "ℹ️ mm.h include not present in fs/proc/task_mmu.c — skipping fake patch"
             MM_FAKE_PATCHED=0
           fi
-          
+
           SUSFS_KERNEL_PATCH="susfs4ksu/kernel_patches/50_add_susfs_in_gki-android13-5.15.patch"
-          
+
           echo "🔧 Applying SUSFS kernel patch..."
           if patch -p1 < "$SUSFS_KERNEL_PATCH"; then
             echo "✅ SUSFS patch successfully applied"
@@ -176,19 +176,19 @@ jobs:
 
           echo "🔧 Applying SUSFS -> KernelSU patch..."
           KSU_PATCH="susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch"
-          
+
           echo "📄 Forcing SUSFS source injection..."
-          
+
           # Always replace fs/susfs.c
           mkdir -p fs
           cp -f susfs4ksu/kernel_patches/fs/susfs.c fs/susfs.c
           echo "✔ Copied fs/susfs.c"
-          
+
           # Always replace include/linux/susfs.h
           mkdir -p include/linux
           cp -f susfs4ksu/kernel_patches/include/linux/susfs.h include/linux/susfs.h
           echo "✔ Copied include/linux/susfs.h"
-          
+
           # Also install missing susfs_def.h
           if [ -f susfs4ksu/kernel_patches/include/linux/susfs_def.h ]; then
             cp -f susfs4ksu/kernel_patches/include/linux/susfs_def.h include/linux/susfs_def.h
@@ -196,15 +196,15 @@ jobs:
           else
             echo "⚠️ susfs_def.h not found in repo"
           fi
-          
+
           echo "🔍 Verifying SUSFS files..."
           for f in fs/susfs.c include/linux/susfs.h include/linux/susfs_def.h; do
             if [ -f "$f" ]; then echo "✔ Found: $f"; else echo "❌ Missing: $f"; fi
           done
-          
+
           # Clean up SUSFS repo (we only needed kernel patches, not KSU integration)
           rm -rf susfs4ksu
-          
+
           # Create symbolic link for drivers/kernelsu (if needed by build system)
           if [ ! -L "drivers/kernelsu" ]; then
             ln -sf ../KernelSU drivers/kernelsu
@@ -250,15 +250,16 @@ jobs:
           else
             echo "ℹ️ Skipping mm.h restore (not fake-patched or already present)"
           fi
-          
+
           echo "✅ KSU configs added"
 
           echo "🎉 ReSukiSU installed and SUSFS for GKI android13-5.15 fully integrated!"
-      - name: "📦 Install build dependencies"        # ← ДОБАВИТЬ ЭТОТ БЛОК
-        run: |                                        # ←
-          sudo apt-get update -qq                     # ←
-          sudo apt-get install -y libssl-dev          # ←
-          
+
+      - name: "📦 Install build dependencies"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libssl-dev
+
       - name: "🔨 Build kernel"
         working-directory: ${{ env.WORK_DIR }}
         run: |
@@ -291,10 +292,10 @@ jobs:
         run: |
           BUILD_TIME=$(date +'%Y-%m-%d')
           git clone --depth=1 https://github.com/topnotchfreaks/AnyKernel3 -b master AnyKernel3
-          
+
           # Copy kernels
           find kernels -name "Image.*" -exec cp {} AnyKernel3/ \;
-          
+
           # Create ZIP
           ZIP_NAME="Anykernel3_ReSukiSU_${{ github.event.inputs.kernelBranch }}_${BUILD_TIME}.zip"
           cd AnyKernel3

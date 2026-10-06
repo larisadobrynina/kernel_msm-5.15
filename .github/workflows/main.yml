@@ -111,6 +111,9 @@ jobs:
           -e '/^MODULES_LIST=/d' \
          ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
 
+         # Принудительно включаем генерацию BTF
+         echo "GENERATE_VMLINUX_BTF=1" >> ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
+
       - name: "⚙️ Configure kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
@@ -133,6 +136,7 @@ jobs:
           CONFIG_MODULE_SIG_SHA1=y
           CONFIG_DEBUG_INFO=y
           CONFIG_DEBUG_INFO_BTF=y
+          CONFIG_DEBUG_INFO_DWARF4=y
           EOF
 
       - name: "🔧 Setup ReSukiSU"
@@ -273,12 +277,21 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}
         run: |
           cp out/dist/Image Image.${{ matrix.variant }}
+          cp out/dist/vmlinux vmlinux.${{ matrix.variant }}
+          cp out/dist/System.map System.map.${{ matrix.variant }}
+          if [ -f out/dist/vmlinux.btf ]; then
+            cp out/dist/vmlinux.btf vmlinux.btf.${{ matrix.variant }}
+          fi
 
       - name: "📤 Upload kernel"
         uses: actions/upload-artifact@v4
         with:
           name: kernel-${{ matrix.variant }}
-          path: ${{ env.WORK_DIR }}/Image.${{ matrix.variant }}
+          path: |
+            ${{ env.WORK_DIR }}/Image.${{ matrix.variant }}
+            ${{ env.WORK_DIR }}/vmlinux.${{ matrix.variant }}
+            ${{ env.WORK_DIR }}/System.map.${{ matrix.variant }}
+            ${{ env.WORK_DIR }}/vmlinux.btf.${{ matrix.variant }}
           retention-days: 3
 
   Package-Kernels:

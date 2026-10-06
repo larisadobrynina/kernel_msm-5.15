@@ -265,15 +265,7 @@ jobs:
       - name: "📦 Install build dependencies"
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y libssl-dev cmake libelf-dev
-          # Скачиваем pahole v1.25 (проверенная версия для Android 13)
-          wget -q https://github.com/acmel/dwarves/archive/refs/tags/v1.25.tar.gz -O /tmp/dwarves.tar.gz
-          tar -xzf /tmp/dwarves.tar.gz -C /tmp
-          cd /tmp/dwarves-1.25
-          mkdir build && cd build
-          cmake -D__LIB=lib -DBUILD_SHARED_LIBS=OFF ..
-          sudo make install
-          sudo ldconfig
+          sudo apt-get install -y libssl-dev pahole
           pahole --version
 
       - name: "🔨 Build kernel"

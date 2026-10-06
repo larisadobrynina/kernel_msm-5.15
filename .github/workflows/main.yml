@@ -265,10 +265,16 @@ jobs:
       - name: "📦 Install build dependencies"
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y libssl-dev dwarves
-          which pahole
+          sudo apt-get install -y libssl-dev cmake libelf-dev libdw-dev
+          wget -q https://fedorapeople.org/~acme/dwarves/dwarves-1.25.tar.xz -O /tmp/dwarves.tar.xz
+          tar -xJf /tmp/dwarves.tar.xz -C /tmp
+          cd /tmp/dwarves-1.25
+          mkdir build && cd build
+          cmake -D__LIB=lib -DBUILD_SHARED_LIBS=OFF ..
+          sudo make install
+          sudo ldconfig
+          find / -name "pahole" -type f 2>/dev/null | head -5
           pahole --version
-          echo "/usr/bin" >> $GITHUB_PATH
 
       - name: "🔨 Build kernel"
         working-directory: ${{ env.WORK_DIR }}

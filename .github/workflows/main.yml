@@ -273,12 +273,19 @@ jobs:
           cmake -D__LIB=lib -DBUILD_SHARED_LIBS=OFF ..
           sudo make install
           sudo ldconfig
-          find / -name "pahole" -type f 2>/dev/null | head -5
+          which pahole
           pahole --version
 
       - name: "🔨 Build kernel"
         working-directory: ${{ env.WORK_DIR }}
         run: |
+          export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+          export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+          which pahole
+          pahole --version
+          cd ${{ env.WORK_DIR }}/out/common_sapphire/common
+          ls -la vmlinux* 2>/dev/null || echo "vmlinux not found yet"
+          cd ${{ env.WORK_DIR }}
           LTO=thin BUILD_CONFIG=${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64 \
           build/build.sh -j$(nproc --all)
 

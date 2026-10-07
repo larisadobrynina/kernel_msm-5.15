@@ -111,8 +111,8 @@ jobs:
           -e '/^MODULES_LIST=/d' \
          ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
 
-         # Отключаем генерацию BTF внутри build.sh — будем делать отдельно
-         sed -i '/GENERATE_VMLINUX_BTF/d' ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
+         # Возвращаем принудительную генерацию BTF
+         echo "GENERATE_VMLINUX_BTF=1" >> ${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64
 
       - name: "⚙️ Configure kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
@@ -265,42 +265,25 @@ jobs:
       - name: "📦 Install build dependencies"
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y libssl-dev cmake libelf-dev libdw-dev
-          wget -q https://fedorapeople.org/~acme/dwarves/dwarves-1.25.tar.xz -O /tmp/dwarves.tar.xz
-          tar -xJf /tmp/dwarves.tar.xz -C /tmp
-          cd /tmp/dwarves-1.25
-          mkdir build && cd build
-          cmake -D__LIB=lib -DBUILD_SHARED_LIBS=OFF ..
-          sudo make install
-          sudo ldconfig
+          sudo apt-get install -y libssl-dev dwarves cmake libelf-dev libdw-dev
+          which pahole || echo "pahole not found in apt"
+          pahole --version || echo "pahole version failed"
+          sudo cp /usr/bin/pahole /usr/local/bin/pahole 2>/dev/null || true
+          sudo cp /usr/bin/pahole /bin/pahole 2>/dev/null || true
           which pahole
           pahole --version
+          echo "/usr/bin" >> $GITHUB_PATH
+          echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: "🔨 Build kernel"
         working-directory: ${{ env.WORK_DIR }}
         run: |
           export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
           export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+          which pahole
+          pahole --version
           LTO=thin BUILD_CONFIG=${{ env.kernelDir }}/${{ env.kernelName }}/build.config.gki.aarch64 \
-          build/build.sh -j$(nproc --all) || true
-
-      - name: "🔬 Generate BTF separately"
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
-          export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-          VMLINUX_PATH="${{ env.WORK_DIR }}/out/common_sapphire/common/vmlinux"
-          if [ -f "$VMLINUX_PATH" ]; then
-            echo "Found vmlinux at $VMLINUX_PATH"
-            mkdir -p "${{ env.WORK_DIR }}/out/dist"
-            cp "$VMLINUX_PATH" "${{ env.WORK_DIR }}/out/dist/vmlinux"
-            cp "$VMLINUX_PATH" "${{ env.WORK_DIR }}/out/dist/vmlinux.btf"
-            cd "${{ env.WORK_DIR }}/out/dist"
-            pahole -J vmlinux.btf && echo "BTF generated successfully!" || echo "pahole failed"
-          else
-            echo "vmlinux not found at $VMLINUX_PATH"
-            find ${{ env.WORK_DIR }}/out -name "vmlinux" -type f 2>/dev/null | head -5
-          fi
+          build/build.sh -j$(nproc --all)
 
       - name: "📦 Prepare artifact"
         working-directory: ${{ env.WORK_DIR }}
